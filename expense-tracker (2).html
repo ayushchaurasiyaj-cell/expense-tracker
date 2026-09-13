@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="theme-color" content="#6d28d9" />
+  <title>Expense Tracker</title>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --purple: #6d28d9;
+      --purple-dark: #4c1d95;
+      --pink: #db2777;
+      --bg: #f5f3ff;
+      --card: rgba(255, 255, 255, 0.94);
+      --text: #20153d;
+      --muted: #766b89;
+      --danger: #dc2626;
+      --border: #e8e1f5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, #ddd6fe 0, transparent 35%),
+        radial-gradient(circle at bottom right, #fbcfe8 0, transparent 32%),
+        var(--bg);
+    }
+
+    .container {
+      width: min(720px, 100%);
+      margin: auto;
+      padding: 18px 14px 40px;
+    }
+
+    header {
+      padding: 22px 4px 16px;
+      color: white;
+      background: linear-gradient(135deg, var(--purple-dark), var(--pink));
+      border-radius: 24px;
+      box-shadow: 0 14px 32px rgba(76, 29, 149, .2);
+    }
+
+    header h1 {
+      margin: 0 20px 5px;
+      font-size: 30px;
+    }
+
+    header p {
+      margin: 0 20px;
+      opacity: .85;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+
+    .card {
+      margin-top: 14px;
+      padding: 18px;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.8);
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(67, 42, 112, .08);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 14px 10px;
+      text-align: center;
+      background: #faf7ff;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--purple-dark);
+      font-size: 21px;
+      overflow-wrap: anywhere;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font: 11px Arial, sans-serif;
+    }
+
+    label {
+      display: block;
+      margin: 13px 0 6px;
+      color: var(--muted);
+      font: 12px Arial, sans-serif;
+      font-weight: bold;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 13px;
+      color: var(--text);
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font: 15px Arial, sans-serif;
+    }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 16px;
+      color: white;
+      background: var(--purple);
+      font: bold 14px Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(.98);
+    }
+
+    .primary {
+      width: 100%;
+      margin-top: 16px;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+    }
+
+    .secondary {
+      background: #ede9fe;
+      color: var(--purple-dark);
+    }
+
+    .danger {
+      padding: 7px 9px;
+      background: #fee2e2;
+      color: var(--danger);
+      font-size: 12px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 19px;
+    }
+
+    .category-row {
+      margin: 11px 0;
+    }
+
+    .category-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      font: 13px Arial, sans-serif;
+    }
+
+    .bar {
+      height: 9px;
+      overflow: hidden;
+      background: #eee9f8;
+      border-radius: 10px;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--purple), var(--pink));
+    }
+
+    .expense {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+      font-family: Arial, sans-serif;
+    }
+
+    .expense:last-child {
+      border-bottom: 0;
+    }
+
+    .expense-title {
+      font-weight: bold;
+    }
+
+    .expense-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .expense-amount {
+      white-space: nowrap;
+      color: var(--purple-dark);
+      font-weight: bold;
+    }
+
+    .empty {
+      padding: 20px 0;
+      color: var(--muted);
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+
+    #status {
+      min-height: 18px;
+      margin-top: 10px;
+      color: var(--muted);
+      text-align: center;
+      font: 12px Arial, sans-serif;
+    }
+
+    @media (max-width: 480px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .stat {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <header>
+      <h1>Expense Tracker</h1>
+      <p>Your lifetime spending, organized simply.</p>
+    </header>
+
+    <section class="card">
+      <div class="stats">
+        <div class="stat">
+          <strong id="total">₹0</strong>
+          <span>Lifetime</span>
+        </div>
+        <div class="stat">
+          <strong id="monthTotal">₹0</strong>
+          <span>This month</span>
+        </div>
+        <div class="stat">
+          <strong id="count">0</strong>
+          <span>Expenses</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="entryCard">
+      <h2>Add Expense</h2>
+
+      <label for="amount">Amount</label>
+      <input id="amount" type="number" min="0.01" step="0.01" placeholder="Example: 250" />
+
+      <label for="category">Category</label>
+      <select id="category">
+        <option>Food</option>
+        <option>Transport</option>
+        <option>Shopping</option>
+        <option>Bills</option>
+        <option>Entertainment</option>
+        <option>Other</option>
+      </select>
+
+      <label for="note">Note, optional</label>
+      <textarea id="note" placeholder="Example: Lunch with team"></textarea>
+
+      <button class="primary" id="addBtn">Save Expense</button>
+      <div id="status"></div>
+    </section>
+
+    <section class="card">
+      <h2>Spending by Category</h2>
+      <div id="categories"></div>
+    </section>
+
+    <section class="card">
+      <h2>Data</h2>
+      <div class="actions">
+        <button class="secondary" id="exportBtn">Export Excel</button>
+        <button class="secondary" id="syncBtn">Sync Google Sheet</button>
+      </div>
+
+      <label for="syncUrl">Google Apps Script Web App URL, optional</label>
+      <input id="syncUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+    </section>
+
+    <section class="card">
+      <h2>Expense History</h2>
+      <div id="history"></div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "expense-tracker-records-v1";
+    const URL_KEY = "expense-tracker-sync-url";
+    const categories = ["Food", "Transport", "Shopping", "Bills", "Entertainment", "Other"];
+
+    let expenses = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+    const $ = id => document.getElementById(id);
+    const money = value => "₹" + Number(value).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    $("syncUrl").value = localStorage.getItem(URL_KEY) || "";
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    }
+
+    function showStatus(message, error = false) {
+      $("status").textContent = message;
+      $("status").style.color = error ? "#dc2626" : "#766b89";
+      setTimeout(() => {
+        $("status").textContent = "";
+      }, 3500);
+    }
+
+    function render() {
+      const total = expenses.reduce((sum, item) => sum + item.amount, 0);
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const monthTotal = expenses
+        .filter(item => item.date.slice(0, 7) === currentMonth)
+        .reduce((sum, item) => sum + item.amount, 0);
+
+      $("total").textContent = money(total);
+      $("monthTotal").textContent = money(monthTotal);
+      $("count").textContent = expenses.length;
+
+      const sums = Object.fromEntries(categories.map(category => [category, 0]));
+      expenses.forEach(item => sums[item.category] += item.amount);
+      const max = Math.max(...Object.values(sums), 1);
+
+      $("categories").innerHTML = categories.map(category => `
+        <div class="category-row">
+          <div class="category-head">
+            <span>${category}</span>
+            <strong>${money(sums[category])}</strong>
+          </div>
+          <div class="bar"><i style="width:${(sums[category] / max) * 100}%"></i></div>
+        </div>
+      `).join("");
+
+      const ordered = [...expenses].sort((a, b) => b.createdAt - a.createdAt);
+
+      $("history").innerHTML = ordered.length
+        ? ordered.map(item => `
+          <div class="expense">
+            <div>
+              <div class="expense-title">${item.category}</div>
+              <div class="expense-meta">
+                ${new Date(item.date).toLocaleDateString()}${item.note ? " · " + escapeHtml(item.note) : ""}
+              </div>
+            </div>
+            <div>
+              <div class="expense-amount">${money(item.amount)}</div>
+              <button class="danger" onclick="removeExpense('${item.id}')">Delete</button>
+            </div>
+          </div>
+        `).join("")
+        : `<div class="empty">No expenses recorded yet.</div>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    $("addBtn").addEventListener("click", () => {
+      const amount = Number($("amount").value);
+
+      if (!amount || amount <= 0) {
+        showStatus("Enter a valid amount.", true);
+        return;
+      }
+
+      expenses.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        amount,
+        category: $("category").value,
+        note: $("note").value.trim(),
+        date: new Date().toISOString(),
+        createdAt: Date.now()
+      });
+
+      save();
+      render();
+
+      $("amount").value = "";
+      $("note").value = "";
+      $("amount").focus();
+
+      showStatus("Expense saved.");
+    });
+
+    window.removeExpense = function(id) {
+      expenses = expenses.filter(item => item.id !== id);
+      save();
+      render();
+    };
+
+    $("exportBtn").addEventListener("click", () => {
+      if (!expenses.length) {
+        showStatus("There are no expenses to export.", true);
+        return;
+      }
+
+      const rows = expenses.map(item => ({
+        Date: new Date(item.date).toLocaleString(),
+        Amount: item.amount,
+        Category: item.category,
+        Note: item.note || ""
+      }));
+
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(workbook, sheet, "Expenses");
+      XLSX.writeFile(workbook, "expense-history.xlsx");
+
+      showStatus("Excel file downloaded.");
+    });
+
+    $("syncUrl").addEventListener("change", () => {
+      localStorage.setItem(URL_KEY, $("syncUrl").value.trim());
+    });
+
+    $("syncBtn").addEventListener("click", async () => {
+      const url = $("syncUrl").value.trim();
+
+      if (!url) {
+        showStatus("Add your Google Apps Script URL first.", true);
+        return;
+      }
+
+      localStorage.setItem(URL_KEY, url);
+      $("syncBtn").disabled = true;
+      showStatus("Syncing...");
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ expenses })
+        });
+
+        showStatus("Sync request sent to Google Sheets.");
+      } catch (error) {
+        showStatus("Sync failed. Check the Web App URL.", true);
+      } finally {
+        $("syncBtn").disabled = false;
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
